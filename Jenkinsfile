@@ -22,7 +22,7 @@ pipeline {
             steps {
                 sshagent(['git-docker-ssh']) {
                     withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: 'Docker-hub-creds',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
