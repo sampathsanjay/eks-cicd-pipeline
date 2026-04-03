@@ -6,7 +6,7 @@ pipeline {
         IMAGE_TAG       = "v${BUILD_NUMBER}"
         CLUSTER_NAME    = 'my-eks-cluster'
         AWS_REGION      = 'us-east-1'
-        DOCKER_SERVER   = 'ubuntu@44.212.60.253'
+        DOCKER_SERVER   = 'ubuntu@172.31.82.230'
     }
 
     stages {
@@ -27,15 +27,14 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ${DOCKER_SERVER} '
-                                cd /home/ubuntu/eks-cicd-pipeline &&
-                                git pull origin main &&
-                                docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} . &&
-                                echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin &&
-                                docker push ${DOCKERHUB_REPO}:${IMAGE_TAG} &&
-                                docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest &&
-                                docker push ${DOCKERHUB_REPO}:latest
-                            '
+                            ssh -o StrictHostKeyChecking=no ${DOCKER_SERVER} \
+                            "cd /home/ubuntu/eks-cicd-pipeline && \
+                            git pull origin main && \
+                            docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} . && \
+                            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin && \
+                            docker push ${DOCKERHUB_REPO}:${IMAGE_TAG} && \
+                            docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest && \
+                            docker push ${DOCKERHUB_REPO}:latest"
                         """
                     }
                 }
