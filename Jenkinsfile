@@ -2,10 +2,11 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_REPO = 'sampathsanjay/flask-app'
-        IMAGE_TAG      = "v${BUILD_NUMBER}"
-        CLUSTER_NAME   = 'my-eks-cluster'
-        AWS_REGION     = 'us-east-1'
+        DOCKERHUB_REPO  = 'sampathsanjay/flask-app'
+        IMAGE_TAG       = "v${BUILD_NUMBER}"
+        CLUSTER_NAME    = 'my-eks-cluster'
+        AWS_REGION      = 'us-east-1'
+        DOCKER_SERVER   = 'ubuntu@44.212.60.253'
     }
 
     stages {
@@ -17,25 +18,26 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push Docker Image') {
             steps {
-                sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh """
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                        docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest
-                        docker push ${DOCKERHUB_REPO}:latest
-                    """
+                sshagent(['git-docker-ssh']) {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DOCKER_SERVER} '
+                                cd /home/ubuntu/eks-cicd-pipeline &&
+                                git pull origin main &&
+                                docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} . &&
+                                echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin &&
+                                docker push ${DOCKERHUB_REPO}:${IMAGE_TAG} &&
+                                docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest &&
+                                docker push ${DOCKERHUB_REPO}:latest
+                            '
+                        """
+                    }
                 }
             }
         }
